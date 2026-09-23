@@ -640,12 +640,15 @@ button.chip[aria-pressed="false"] { opacity: 0.35; }
   function subPopup(i) {
     const r = DBX.subs.rows[i], ll_ = [r[1], r[0]];
     mark(ll_);
-    L.popup().setLatLng(ll_).setContent(`<div class="pop"><span class="tag">変電所</span><h3>${esc(r[4])}</h3><dl>` +
+    const NSRC = { line_name: "線の名前から推定", ferc1_line: "FERC Form 1 の線から推定", eia_plant: "発電所から推定", none: "名前なし（場所で表示）" };
+    L.popup().setLatLng(ll_).setContent(`<div class="pop"><span class="tag">変電所${r[12] && r[12] !== "osm" ? " ・ " + (NSRC[r[12]] || r[12]) : ""}</span><h3>${esc(r[4])}</h3><dl>` +
       `<dt>電圧</dt><dd>${r[7] ? esc(String(r[7]).split(";").join(" / ")) + " kV" : r[2] ? fmt(r[2]) + " kV（OSM タグ）" : "不明"}</dd>` +
       (r[10] ? `<dt>種別</dt><dd>${esc(r[10])}</dd>` : "") +
       `<dt>事業者</dt><dd>${esc(r[6]) || "—"}</dd>` +
       `<dt>連系</dt><dd>${icName(ICN[r[3]])}${r[9] ? ` ・ ${esc(r[9])}` : ""}</dd>` +
       `<dt>接続する線</dt><dd>${fmt(r[8])} 本${r[11] ? "" : "（本体の網に未接続）"}</dd>` +
+      (r[15] ? `<dt>発電所</dt><dd>${fmt(r[15])} か所・${fmt(r[16])} MW（介入 #6）</dd>` : "") +
+      (r[13] ? `<dt>所在地</dt><dd>${esc(r[14] || "")}${r[14] ? ", " : ""}${esc(r[13])}</dd>` : "") +
       `<dt>OSM</dt><dd>${osmLink(r[5])}</dd></dl></div>`).openOn(map);
   }
   function plantPopup(i) {
@@ -658,7 +661,10 @@ button.chip[aria-pressed="false"] { opacity: 0.35; }
       (CAT_JA[r[11]] ? `<dt>区分</dt><dd>${CAT_JA[r[11]]}</dd>` : "") +
       (r[12] ? `<dt>州</dt><dd>${esc(r[12])}</dd>` : "") +
       `<dt>連系</dt><dd>${icName(ICN[r[8]])}</dd>` +
-      (r[9] ? `<dt>接続先</dt><dd>${fmt(r[9])} kV 母線・${fmt(r[10], r[10] < 1 ? 2 : 1)} km（介入 #6）</dd>` : "") +
+      (r[14] ? `<dt>連系電圧</dt><dd>${esc(String(r[14]).split(";").join(" / "))} kV（EIA-860）</dd>` : "") +
+      (r[15] ? `<dt>送電所有者</dt><dd>${esc(r[15])}</dd>` : "") +
+      (r[9] ? `<dt>接続先</dt><dd>${fmt(r[9])} kV 母線・${fmt(r[10], r[10] < 1 ? 2 : 1)} km（介入 #6）${
+        { match: " ✓ EIA と一致", mismatch: " ⚠ EIA と電圧が違う", distribution: "（EIA では配電連系）" }[r[16]] || ""}</dd>` : "") +
       (r[6] ? `<dt>EIA ID</dt><dd>${esc(r[6])}</dd>` : "") +
       `<dt>OSM</dt><dd>${osmLink(r[7])}</dd>` +
       `<dt>出典</dt><dd>${r[13] === "OSM" ? "OSM のみ（EIA に対応なし）" : "EIA-860M（2026 年 7 月）"}</dd></dl></div>`).openOn(map);
