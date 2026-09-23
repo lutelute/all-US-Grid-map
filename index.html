@@ -229,7 +229,7 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
   const map = L.map("map", { zoomSnap: 0.5, minZoom: 3, maxZoom: MODE === "live" ? 18 : 11, preferCanvas: true });
   map.attributionControl.setPrefix(false);
   map.createPane("labels"); map.getPane("labels").style.zIndex = 240; map.getPane("labels").style.pointerEvents = "none";
-  map.attributionControl.addAttribution('送電線・変電所 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (ODbL) ・ BA ポリゴン PyPSA-USA');
+  map.attributionControl.addAttribution('送電線・変電所 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>) ・ EIA-860M / EIA-930 ・ US Census 2020 ・ BA ポリゴン <a href="https://github.com/PyPSA/pypsa-usa" target="_blank" rel="noopener">PyPSA-USA</a> (MIT) / Breakthrough Energy PreREISE');
   map.createPane("outline"); map.getPane("outline").style.zIndex = 380;
   map.createPane("marks"); map.getPane("marks").style.zIndex = 450;
   const rOut = L.canvas({ pane: "outline" }), rLine = L.canvas({ padding: 0.4 }), rMarks = L.canvas({ pane: "marks", tolerance: 4 });
@@ -410,19 +410,16 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
   });
   const BASES = [];
   if (MODE === "live") {
-    const esri = (svc, attr, extra = {}) => L.tileLayer(`https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,
-      { maxZoom: 19, maxNativeZoom: 19, attribution: attr, ...extra });
-    const IMG = "衛星画像 © Esri, Maxar, Earthstar Geographics";
-    BASES.push(["esri-labels", "衛星＋地名", L.layerGroup([esri("World_Imagery", IMG),
-      esri("Reference/World_Boundaries_and_Places", "地名 © Esri", { pane: "labels" })]), true]);
-    BASES.push(["esri", "衛星", esri("World_Imagery", IMG), true]);
-    BASES.push(["usgs", "航空写真（USGS NAIP）", L.tileLayer("https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
-      { maxZoom: 19, maxNativeZoom: 16, attribution: "航空写真 USGS The National Map" }), true]);
-    BASES.push(["topo", "地形", esri("World_Topo_Map", "地形図 © Esri"), false]);
+    // Only basemaps whose terms allow key-less use on a public page (docs/DATA_SOURCES.md):
+    // USGS The National Map is public domain. Esri (Master License Agreement: ArcGIS account
+    // required) and CARTO (own API key required since 2026-08) are not offered.
+    const usgs = (svc, attr) => L.tileLayer(`https://basemap.nationalmap.gov/arcgis/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,
+      { maxZoom: 19, maxNativeZoom: 16, attribution: `${attr}（<a href="https://www.usgs.gov/faqs/what-are-terms-uselicensing-map-services-and-data-national-map" target="_blank" rel="noopener">USGS</a>）` });
+    BASES.push(["usgs-labels", "衛星＋地名（USGS）", usgs("USGSImageryTopo", "航空写真・地名 USGS The National Map: Orthoimagery and US Topo"), true]);
+    BASES.push(["usgs", "衛星（USGS NAIP）", usgs("USGSImageryOnly", "航空写真 USDA, USGS The National Map: Orthoimagery"), true]);
+    BASES.push(["topo", "地形（USGS）", usgs("USGSTopo", "地形図 USGS The National Map"), false]);
     BASES.push(["osm", "OpenStreetMap", L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-      { maxZoom: 19, attribution: "地図 © OpenStreetMap contributors" }), false]);
-    BASES.push(["light", "淡色", L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap contributors © CARTO" }), false]);
+      { maxZoom: 19, attribution: '地図 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>' }), false]);
   } else if (SAT) {
     BASES.push(["usgs", "衛星（USGS）", new EmbeddedSat({ minZoom: 3, maxZoom: 11, attribution: "衛星画像 USGS The National Map（ページに埋め込み）" }), true]);
   }
