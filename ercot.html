@@ -514,6 +514,11 @@ h2 { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--mut
   const b = L.latLngBounds(solved.flatMap((pl) => [pl.getBounds().getSouthWest(), pl.getBounds().getNorthEast()]));
   const wide = window.innerWidth > 720;
   map.fitBounds(b, { paddingTopLeft: wide ? [360, 20] : [10, 10], paddingBottomRight: wide ? [20, 20] : [10, window.innerHeight * 0.45] });
+  // permalink: #zoom/lat/lon opens that view and follows the map
+  const hv = /^#(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/.exec(location.hash);
+  if (hv) map.setView([+hv[2], +hv[3]], +hv[1], { animate: false });
+  map.on("moveend", () => { const c = map.getCenter();
+    history.replaceState(null, "", `#${map.getZoom()}/${c.lat.toFixed(5)}/${c.lng.toFixed(5)}`); });
   zf = zoomFactor(map.getZoom());
   setBase(BASES[0][0]);
 })();

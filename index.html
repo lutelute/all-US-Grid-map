@@ -497,6 +497,11 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
 
   const wide = window.innerWidth > 720;
   map.fitBounds([[24.5, -125], [49.5, -66.8]], { paddingTopLeft: wide ? [370, 10] : [5, 5], paddingBottomRight: wide ? [10, 10] : [5, window.innerHeight * 0.45] });
+  // permalink: #zoom/lat/lon opens that view and follows the map
+  const hv = /^#(\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)\/(-?\d+(?:\.\d+)?)$/.exec(location.hash);
+  if (hv) map.setView([+hv[2], +hv[3]], +hv[1], { animate: false });
+  map.on("moveend", () => { const c = map.getCenter();
+    history.replaceState(null, "", `#${map.getZoom()}/${c.lat.toFixed(5)}/${c.lng.toFixed(5)}`); });
   zf = zoomF(map.getZoom());
   syncLines();
   setBase(BASES[0][0]);
