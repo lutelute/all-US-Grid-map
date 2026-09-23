@@ -123,6 +123,53 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
     border: 1px solid var(--panel-line); background: var(--ground); color: var(--ink); cursor: pointer; }
   #panel h1 { font-size: 16px; }
 }
+/* search, list panel, map controls (All-Japan-Grid layout) */
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.search input, #list-filter { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 8px 10px;
+  border-radius: 8px; border: 1px solid var(--panel-line); background: var(--ground); color: var(--ink); }
+.search input:focus-visible, #list-filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.results { margin-top: 6px; border: 1px solid var(--panel-line); border-radius: 8px; max-height: 320px; overflow: auto; }
+.results button, .list button { display: grid; grid-template-columns: 12px 1fr auto; gap: 8px; align-items: center; width: 100%;
+  text-align: left; font: inherit; font-size: 12px; padding: 6px 9px; border: 0; border-bottom: 1px solid var(--panel-line);
+  background: transparent; color: var(--ink); cursor: pointer; }
+.results button:hover, .list button:hover, .results button:focus-visible, .list button:focus-visible { background: var(--ground); outline: none; }
+.results .dot, .list .dot { margin: 0; border: 1px solid rgb(0 0 0 / 0.45); }
+.nm { display: grid; min-width: 0; }
+.nm b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nm small { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.meta { color: var(--muted); font-family: var(--mono); font-size: 11px; white-space: nowrap; margin: 0; }
+details.fold > summary { cursor: pointer; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); list-style: none; }
+details.fold > summary::before { content: "▸ "; }
+details.fold[open] > summary::before { content: "▾ "; }
+details.fold[open] > summary { margin-bottom: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 4px 26px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font: inherit; font-size: 11px; color: var(--muted);
+  padding: 1px 6px; border: 1px solid var(--panel-line); border-radius: 10px; background: var(--panel); }
+button.chip { cursor: pointer; }
+button.chip[aria-pressed="false"] { opacity: 0.35; }
+.chip .dot { width: 8px; height: 8px; margin: 0; border: 1px solid rgb(0 0 0 / 0.4); }
+.sw.pt { width: 10px; height: 10px; border-radius: 50%; justify-self: center; border: 1px solid rgb(0 0 0 / 0.5); }
+.mapbtn { font: inherit; font-size: 12px; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--panel-line);
+  background: var(--panel); color: var(--ink); cursor: pointer; box-shadow: var(--shadow); }
+.mapbtn[aria-expanded="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent), var(--shadow); }
+.basectl .pop-body { margin-top: 6px; width: 250px; padding: 10px 12px; background: var(--panel); color: var(--ink);
+  border: 1px solid var(--panel-line); border-radius: 10px; box-shadow: var(--shadow); }
+.basectl .pop-body h2 { display: none; }
+#listpanel { position: absolute; z-index: 1000; right: 12px; top: 104px; width: 300px; max-height: calc(100% - 150px);
+  display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--panel-line);
+  border-radius: 10px; box-shadow: var(--shadow); overflow: hidden; }
+#listpanel[hidden] { display: none; }
+#listpanel header { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 6px; }
+#listpanel header h2 { margin: 0; }
+#list-close { font: inherit; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 16px; }
+.tabs { display: flex; gap: 4px; padding: 0 12px 8px; }
+.tabs button { flex: 1; font: inherit; font-size: 12px; padding: 5px 0; border-radius: 6px; border: 1px solid var(--panel-line);
+  background: var(--panel); color: var(--ink); cursor: pointer; }
+.tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+#listpanel #list-filter { margin: 0 12px; width: calc(100% - 24px); }
+#list-count { padding: 6px 12px; }
+.list { overflow: auto; border-top: 1px solid var(--panel-line); }
+@media (max-width: 720px) { #listpanel { display: none; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -139,12 +186,18 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
       <button id="toggle-panel" type="button" aria-expanded="true">閉じる</button>
     </header>
     <div class="scroll">
-      <section>
-        <h2>連系ごとの規模</h2>
-        <table class="ics" id="ics"></table>
+      <section class="search">
+        <label class="vh" for="q">検索</label>
+        <input id="q" type="search" placeholder="変電所・発電所・送電線の名前、EIA ID、緯度,経度" autocomplete="off" spellcheck="false">
+        <div id="results" class="results" hidden></div>
+        <p class="note" id="db-note" style="margin-top:6px"></p>
       </section>
-      <div class="facts" id="facts"></div>
-      <section>
+      <details class="fold">
+        <summary>連系ごとの規模</summary>
+        <table class="ics" id="ics"></table>
+        <div class="facts" id="facts" style="margin-top:10px"></div>
+      </details>
+      <section id="sec-base">
         <h2>背景</h2>
         <div class="seg" id="bases" role="radiogroup" aria-label="背景地図"></div>
         <label class="opacity" for="base-op">背景の濃さ <input type="range" id="base-op" min="10" max="100" value="100"></label>
@@ -163,6 +216,10 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
       <section>
         <h2>レイヤー</h2>
         <div class="layers">
+          <label class="row" id="row-subs"><input type="checkbox" id="ly-subs" checked><span class="sw pt" style="background:#ff7f0e"></span><span>変電所（OSM・電圧の色）</span><span class="n" id="n-subs"></span></label>
+          <div class="chips" id="kv-chips"></div>
+          <label class="row" id="row-plants"><input type="checkbox" id="ly-plants" checked><span class="sw pt" style="background:#ff8800"></span><span>発電所（EIA-860M・燃料の色）</span><span class="n" id="n-plants"></span></label>
+          <div class="chips" id="fuel-chips"></div>
           <label class="row"><input type="checkbox" id="ly-eastern" checked><span class="sw" style="background:var(--ic-eastern)"></span><span>東部連系</span><span class="n" id="n-eastern"></span></label>
           <label class="row"><input type="checkbox" id="ly-western" checked><span class="sw" style="background:var(--ic-western)"></span><span>西部連系（WECC）</span><span class="n" id="n-western"></span></label>
           <label class="row"><input type="checkbox" id="ly-ercot" checked><span class="sw" style="background:var(--ic-ercot)"></span><span>ERCOT</span><span class="n" id="n-ercot"></span></label>
@@ -174,15 +231,26 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
           <label class="row"><input type="checkbox" id="ly-outline" checked><span class="sw dash"></span><span>連系の輪郭（BA ポリゴン）</span><span class="n"></span></label>
         </div>
       </section>
-      <section>
-        <h2>所属判定の目印</h2>
+      <details class="fold">
+        <summary>所属判定の目印</summary>
         <div class="anchors" id="anchors"></div>
-      </section>
-      <section>
-        <h2>読み方</h2>
+      </details>
+      <details class="fold">
+        <summary>読み方</summary>
         <p class="note" id="note"></p>
-      </section>
+      </details>
     </div>
+  </aside>
+  <aside id="listpanel" hidden aria-label="表示範囲の一覧">
+    <header><h2>表示範囲の一覧</h2><button type="button" id="list-close" aria-label="一覧を閉じる">×</button></header>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" data-t="subs" aria-selected="true">変電所</button>
+      <button type="button" role="tab" data-t="plants" aria-selected="false">発電所</button>
+      <button type="button" role="tab" data-t="lines" aria-selected="false">送電線</button>
+    </div>
+    <input id="list-filter" type="search" placeholder="この範囲で絞り込む" autocomplete="off" aria-label="一覧を絞り込む">
+    <p class="meta" id="list-count"></p>
+    <div class="list" id="list"></div>
   </aside>
 </div>
 
@@ -238,6 +306,10 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
   const ll = (c) => c.map((p) => [p[1], p[0]]);
   const kvW = (kv) => kv >= 500 ? 2.6 : kv >= 345 ? 2.0 : kv >= 230 ? 1.5 : kv >= 138 ? 1.05 : kv >= 115 ? 0.85 : 0.55;
   const kvClass = (kv) => kv >= 500 ? 500 : kv >= 345 ? 345 : kv >= 230 ? 230 : kv >= 138 ? 138 : kv >= 115 ? 115 : 69;
+  const KV_COL = { 765: "#8c0000", 500: "#d62728", 345: "#ff7f0e", 230: "#e377c2", 161: "#9467bd",
+                   138: "#2ca02c", 115: "#17becf", 69: "#1f77b4", 0: "#8c8c8c" };
+  const kvBand = (kv) => kv >= 700 ? 765 : kv >= 450 ? 500 : kv >= 300 ? 345 : kv >= 200 ? 230
+    : kv >= 150 ? 161 : kv >= 125 ? 138 : kv >= 100 ? 115 : kv >= 60 ? 69 : 0;
   const zoomF = (z) => z <= 4 ? 0.55 : z <= 5 ? 0.7 : z <= 6.5 ? 0.9 : z <= 8 ? 1.3 : z <= 10 ? 1.8 : 2.4;
   let zf = 1;
 
@@ -362,7 +434,7 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
       const g = lay._g;
       const col = colorMode === "flow"
         ? (g.fc < 0 ? C("--ic-none") : C(`--f${g.fc}`))
-        : C(`--ic-${g.ic}`);
+        : colorMode === "kv" ? KV_COL[kvBand(g.kc)] : C(`--ic-${g.ic}`);
       lay.setStyle({ color: col, weight: kvW(g.kc) * zf,
                      opacity: colorMode === "flow" ? (g.fc < 0 ? 0.3 : g.fc >= 4 ? 1 : 0.85)
                                                    : (g.kc >= 345 ? 0.95 : 0.8) });
@@ -398,14 +470,17 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
       for (let j = 1; j < pts.length; j++) { const d = segDist(p, pts[j - 1], pts[j]); if (d < bd) { bd = d; best = i; } }
     }
     if (best === null) return;
+    linePopup(best, e.latlng);
+  });
+  function linePopup(best, latlng) {
     const r = D.lines[best], ic = ICK[r[2]] || "none";
-    L.popup().setLatLng(e.latlng).setContent(`<div class="pop"><span class="tag">${IC_JA[ic]}${ic === "none" ? "" : "連系"}の送電線</span>` +
+    L.popup().setLatLng(latlng).setContent(`<div class="pop"><span class="tag">${IC_JA[ic]}${ic === "none" ? "" : "連系"}の送電線</span>` +
       `<h3>${esc(r[4]) || `${r[0]} kV 線`}</h3><dl><dt>電圧</dt><dd>${r[0]} kV × ${r[1]} 回線</dd>` +
       `<dt>亘長</dt><dd>${fmt(r[3], 1)} km</dd><dt>OSM way</dt><dd>${osm(r[5])}</dd>` +
       (HAS_FLOW && r[7] !== null && r[7] !== undefined
         ? `<dt>DC 潮流</dt><dd>${fmt(Math.abs(r[7]))} MW（容量比 ${fmt(r[8], 0)}%）</dd>` : "") +
       `</dl>${HAS_FLOW && r[7] !== null && r[7] !== undefined ? '<p class="note" style="margin:6px 0 0">既定の線路定数による推定値です。実測の潮流ではありません。</p>' : ""}</div>`).openOn(map);
-  });
+  }
   cutLayer.on("click", (e) => {
     const c = e.layer._c;
     const side = (label, s) => `<div class="side"><span class="tag">${label}</span><dl><dt>母線</dt><dd>${esc(s[0])}</dd><dt>事業者</dt><dd>${esc(s[1]) || "—"}</dd><dt>ポリゴン</dt><dd>${esc(s[2]) || "—"}</dd></dl></div>`;
@@ -486,15 +561,284 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
   $("base-op").addEventListener("input", (e) => { baseOpacity = Number(e.target.value) / 100; setOp(base); });
   const KVS = [[0, "すべて"], [230, "230 kV 以上"], [345, "345 kV 以上"]];
   $("kvsel").innerHTML = KVS.map(([v, label], i) => `<label><input type="radio" name="kv" id="kv-${v}" value="${v}" ${i === 0 ? "checked" : ""}>${label}</label>`).join("");
-  $("kvsel").addEventListener("change", (e) => { minKv = Number(e.target.value); syncLines(); });
+  $("kvsel").addEventListener("change", (e) => { minKv = Number(e.target.value); syncLines(); drawPoints(); });
+
+
+  // ── substations and plants (the published DB, scripts/build_db.py → subs.json / plants.json) ──
+  const FUEL = { nuclear: ["原子力", "#ff0000"], coal: ["石炭", "#444444"], gas: ["ガス", "#ff8800"],
+    oil: ["石油", "#884400"], hydro: ["水力", "#0088ff"], pumped_hydro: ["揚水", "#0044aa"],
+    wind: ["風力", "#00cc88"], solar: ["太陽光", "#ffdd00"], geothermal: ["地熱", "#cc4488"],
+    biomass: ["バイオマス", "#668833"], waste: ["廃棄物", "#996633"], battery: ["蓄電池", "#aa00ff"],
+    unknown: ["不明", "#999999"] };
+  const CAT_JA = { utility: "電気事業者", ipp: "IPP（独立系）", other: "自家用・その他" };
+  const ICN = { 0: "eastern", 1: "western", 2: "ercot", "-1": "none" };
+  map.createPane("subsPane").style.zIndex = 460;
+  map.createPane("plantsPane").style.zIndex = 470;
+  const rSubs = L.canvas({ pane: "subsPane", tolerance: 4 }), rPlants = L.canvas({ pane: "plantsPane", tolerance: 4 });
+  const subLayer = L.layerGroup().addTo(map), plantLayer = L.layerGroup().addTo(map);
+  const DBX = { subs: null, plants: null };
+  const PCELL = 1, MAX_MARKERS = 6000;
+  const cellIndex = (rows) => {
+    const m = new Map();
+    rows.forEach((r, i) => { const k = Math.floor(r[0] / PCELL) + "," + Math.floor(r[1] / PCELL); (m.get(k) || m.set(k, []).get(k)).push(i); });
+    return m;
+  };
+  function inView(ds, pad) {
+    const b = map.getBounds().pad(pad), out = [];
+    for (let gx = Math.floor(b.getWest() / PCELL); gx <= Math.floor(b.getEast() / PCELL); gx++)
+      for (let gy = Math.floor(b.getSouth() / PCELL); gy <= Math.floor(b.getNorth() / PCELL); gy++)
+        for (const i of ds.idx.get(gx + "," + gy) || []) { const r = ds.rows[i]; if (b.contains([r[1], r[0]])) out.push(i); }
+    return out;
+  }
+  // national view: the big ones only; everything from zoom 11 (substations) / 10 (plants)
+  const subMinKv = (z) => z < 5 ? 450 : z < 6.5 ? 300 : z < 8 ? 200 : z < 9.5 ? 100 : z < 11 ? 60 : 0;
+  const plantMinMw = (z) => z < 5 ? 1000 : z < 6.5 ? 300 : z < 8 ? 100 : z < 10 ? 20 : -2;
+  const subRadius = (kv) => kv >= 450 ? 5 : kv >= 300 ? 4.2 : kv >= 200 ? 3.6 : kv >= 100 ? 3 : 2.4;
+  const plantRadius = (mw) => mw >= 1000 ? 7 : mw >= 100 ? 5 : mw > 0 ? 3.5 : 2.5;
+  const ptScale = (z) => z < 5 ? 0.5 : z < 6.5 ? 0.65 : z < 8 ? 0.8 : z < 10 ? 0.9 : z >= 14 ? 1.4 : 1;
+  const fuelOn = new Set(Object.keys(FUEL));
+  const icOn = (c) => $(`ly-${ICN[c] || "none"}`).checked;
+  function drawSubs() {
+    subLayer.clearLayers();
+    if (!DBX.subs || !$("ly-subs").checked) return;
+    const z = map.getZoom(), lo = Math.max(subMinKv(z), minKv), rows = DBX.subs.rows, big = ptScale(z);
+    let ids = inView(DBX.subs, 0.1).filter((i) => rows[i][2] >= lo && icOn(rows[i][3]));
+    if (ids.length > MAX_MARKERS) ids = ids.sort((a, b) => rows[b][2] - rows[a][2]).slice(0, MAX_MARKERS);
+    for (const i of ids) {
+      const r = rows[i];
+      L.circleMarker([r[1], r[0]], { renderer: rSubs, radius: subRadius(r[2]) * big, color: "#111", weight: 0.8,
+        opacity: 0.9, fillColor: KV_COL[kvBand(r[2])], fillOpacity: 0.95 })
+        .on("click", (e) => { L.DomEvent.stop(e); subPopup(i); }).addTo(subLayer);
+    }
+  }
+  function drawPlants() {
+    plantLayer.clearLayers();
+    if (!DBX.plants || !$("ly-plants").checked) return;
+    const z = map.getZoom(), lo = plantMinMw(z), rows = DBX.plants.rows, big = ptScale(z);
+    let ids = inView(DBX.plants, 0.1).filter((i) => rows[i][3] >= lo && fuelOn.has(rows[i][2]) && (rows[i][8] < 0 || icOn(rows[i][8])));
+    if (ids.length > MAX_MARKERS) ids = ids.sort((a, b) => rows[b][3] - rows[a][3]).slice(0, MAX_MARKERS);
+    ids.sort((a, b) => rows[b][3] - rows[a][3]);            // small plants on top of big ones
+    for (const i of ids) {
+      const r = rows[i];
+      L.circleMarker([r[1], r[0]], { renderer: rPlants, radius: plantRadius(r[3]) * big, color: "#000", weight: z < 7 ? 0.6 : 1,
+        opacity: 0.9, fillColor: (FUEL[r[2]] || FUEL.unknown)[1], fillOpacity: 0.85 })
+        .on("click", (e) => { L.DomEvent.stop(e); plantPopup(i); }).addTo(plantLayer);
+    }
+  }
+  const drawPoints = () => { drawSubs(); drawPlants(); };
+  const osmLink = (o) => {
+    if (!o) return "—";
+    const t = { w: "way", n: "node", r: "relation" }[o[0]];
+    return `<a href="https://www.openstreetmap.org/${t}/${o.slice(1)}" target="_blank" rel="noopener">${t}/${o.slice(1)}</a>`;
+  };
+  const icName = (ic) => ic === "none" ? "所属なし" : `${IC_JA[ic]}連系`;
+  let selRing = null;
+  function mark(latlng) {
+    if (selRing) selRing.remove();
+    selRing = L.circleMarker(latlng, { radius: 14, color: C("--accent"), weight: 3, fill: false, interactive: false, pane: "plantsPane" }).addTo(map);
+  }
+  function subPopup(i) {
+    const r = DBX.subs.rows[i], ll_ = [r[1], r[0]];
+    mark(ll_);
+    L.popup().setLatLng(ll_).setContent(`<div class="pop"><span class="tag">変電所</span><h3>${esc(r[4])}</h3><dl>` +
+      `<dt>電圧</dt><dd>${r[7] ? esc(String(r[7]).split(";").join(" / ")) + " kV" : r[2] ? fmt(r[2]) + " kV（OSM タグ）" : "不明"}</dd>` +
+      (r[10] ? `<dt>種別</dt><dd>${esc(r[10])}</dd>` : "") +
+      `<dt>事業者</dt><dd>${esc(r[6]) || "—"}</dd>` +
+      `<dt>連系</dt><dd>${icName(ICN[r[3]])}${r[9] ? ` ・ ${esc(r[9])}` : ""}</dd>` +
+      `<dt>接続する線</dt><dd>${fmt(r[8])} 本${r[11] ? "" : "（本体の網に未接続）"}</dd>` +
+      `<dt>OSM</dt><dd>${osmLink(r[5])}</dd></dl></div>`).openOn(map);
+  }
+  function plantPopup(i) {
+    const r = DBX.plants.rows[i], ll_ = [r[1], r[0]], f = FUEL[r[2]] || FUEL.unknown;
+    mark(ll_);
+    L.popup().setLatLng(ll_).setContent(`<div class="pop"><span class="tag">発電所 ・ ${f[0]}</span><h3>${esc(r[4]) || "（無名）"}</h3><dl>` +
+      `<dt>設備容量</dt><dd>${r[3] > 0 ? fmt(r[3], r[3] < 10 ? 1 : 0) + " MW" : "不明"}</dd>` +
+      `<dt>燃料</dt><dd><span class="dot" style="background:${f[1]}"></span>${f[0]}</dd>` +
+      `<dt>事業者</dt><dd>${esc(r[5]) || "—"}</dd>` +
+      (CAT_JA[r[11]] ? `<dt>区分</dt><dd>${CAT_JA[r[11]]}</dd>` : "") +
+      (r[12] ? `<dt>州</dt><dd>${esc(r[12])}</dd>` : "") +
+      `<dt>連系</dt><dd>${icName(ICN[r[8]])}</dd>` +
+      (r[9] ? `<dt>接続先</dt><dd>${fmt(r[9])} kV 母線・${fmt(r[10], r[10] < 1 ? 2 : 1)} km（介入 #6）</dd>` : "") +
+      (r[6] ? `<dt>EIA ID</dt><dd>${esc(r[6])}</dd>` : "") +
+      `<dt>OSM</dt><dd>${osmLink(r[7])}</dd>` +
+      `<dt>出典</dt><dd>${r[13] === "OSM" ? "OSM のみ（EIA に対応なし）" : "EIA-860M（2026 年 7 月）"}</dd></dl></div>`).openOn(map);
+  }
+
+  // ── search and the list panel share one item format ─────────────────────
+  function itemHtml(x, k) {
+    let col, meta, sub;
+    if (x.t === "sub") {
+      const r = DBX.subs.rows[x.i];
+      col = KV_COL[kvBand(r[2])]; meta = r[2] ? `${fmt(r[2])} kV` : "— kV"; sub = `変電所 ・ ${icName(ICN[r[3]])}${r[6] ? " ・ " + r[6] : ""}`;
+    } else if (x.t === "plant") {
+      const r = DBX.plants.rows[x.i], f = FUEL[r[2]] || FUEL.unknown;
+      col = f[1]; meta = r[3] > 0 ? `${fmt(r[3])} MW` : "— MW"; sub = `発電所 ・ ${f[0]}${r[12] ? " ・ " + r[12] : ""}`;
+    } else if (x.t === "line") {
+      const r = D.lines[x.i];
+      col = KV_COL[kvBand(r[0])]; meta = `${fmt(r[0])} kV`; sub = `送電線 ・ ${fmt(r[3], 1)} km ・ ${icName(ICK[r[2]] || "none")}`;
+    } else { col = C("--accent"); meta = ""; sub = "座標へ移動"; }
+    return `<button type="button" data-k="${k}"><span class="dot" style="background:${col}"></span>` +
+      `<span class="nm"><b>${esc(x.name || "（無名）")}</b><small>${esc(sub)}</small></span><span class="meta">${meta}</span></button>`;
+  }
+  function goTo(x) {
+    if (x.t === "coord") { map.setView([x.lat, x.lon], 15); mark([x.lat, x.lon]); return; }
+    if (x.t === "line") {
+      const r = D.lines[x.i], b = L.latLngBounds(ll(r[6]));
+      map.fitBounds(b, { maxZoom: 15, padding: [60, 60], animate: false });
+      linePopup(x.i, b.getCenter());
+      return;
+    }
+    const r = (x.t === "sub" ? DBX.subs : DBX.plants).rows[x.i];
+    map.setView([r[1], r[0]], Math.max(map.getZoom(), 15), { animate: false });
+    (x.t === "sub" ? subPopup : plantPopup)(x.i);
+  }
+  const bindItems = (box) => box.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-k]");
+    if (b && box._items) goTo(box._items[Number(b.dataset.k)]);
+  });
+  bindItems($("results")); bindItems($("list"));
+  let qTimer = null;
+  $("q").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(runSearch, 160); });
+  $("q").addEventListener("keydown", (e) => { if (e.key === "Enter" && $("results")._items && $("results")._items[0]) goTo($("results")._items[0]); });
+  function runSearch() {
+    const q = $("q").value.trim().toLowerCase(), box = $("results");
+    if (q.length < 2) { box.hidden = true; box.innerHTML = ""; box._items = null; return; }
+    const res = [], head = (n) => n.toLowerCase().startsWith(q) ? 1e6 : 0;
+    const co = /^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/.exec(q);
+    if (co) res.push({ t: "coord", lat: +co[1], lon: +co[2], name: `${co[1]}, ${co[2]}`, w: 1e9 });
+    if (DBX.subs) DBX.subs.rows.forEach((r, i) => {
+      if (r[4].toLowerCase().includes(q) || r[6].toLowerCase().includes(q)) res.push({ t: "sub", i, name: r[4], w: head(r[4]) + r[2] });
+    });
+    if (DBX.plants) DBX.plants.rows.forEach((r, i) => {
+      const n = r[4] || "";
+      if (n.toLowerCase().includes(q) || r[5].toLowerCase().includes(q) || String(r[6]) === q)
+        res.push({ t: "plant", i, name: n, w: head(n) + (String(r[6]) === q ? 2e6 : 0) + Math.max(r[3], 0) / 3 });
+    });
+    const seen = new Set();
+    D.lines.forEach((r, i) => {
+      const n = r[4] || "";
+      if (n && n.toLowerCase().includes(q) && !seen.has(n + "|" + r[0])) { seen.add(n + "|" + r[0]); res.push({ t: "line", i, name: n, w: head(n) + r[0] }); }
+    });
+    res.sort((a, b) => b.w - a.w);
+    const top = res.slice(0, 60);
+    box.hidden = false; box._items = top;
+    box.innerHTML = top.length ? top.map(itemHtml).join("") +
+      (res.length > top.length ? `<p class="meta" style="padding:6px 9px">ほか ${fmt(res.length - top.length)} 件（語を足すと絞れます）</p>` : "")
+      : `<p class="meta" style="padding:6px 9px">見つかりません</p>`;
+  }
+  let listTab = "subs";
+  const LIST_MAX = 150;
+  function refreshList() {
+    if ($("listpanel").hidden) return;
+    const f = $("list-filter").value.trim().toLowerCase();
+    let items = [];
+    if (listTab === "subs" && DBX.subs) {
+      const lo = subMinKv(map.getZoom());
+      items = inView(DBX.subs, 0).filter((i) => DBX.subs.rows[i][2] >= Math.min(lo, 100)).map((i) => ({ t: "sub", i, name: DBX.subs.rows[i][4], w: DBX.subs.rows[i][2] }));
+    } else if (listTab === "plants" && DBX.plants) {
+      items = inView(DBX.plants, 0).map((i) => ({ t: "plant", i, name: DBX.plants.rows[i][4] || "", w: DBX.plants.rows[i][3] }));
+    } else if (listTab === "lines") {
+      const b = map.getBounds(), seen = new Set();
+      for (let gx = Math.floor(b.getWest() / CELL); gx <= Math.floor(b.getEast() / CELL); gx++)
+        for (let gy = Math.floor(b.getSouth() / CELL); gy <= Math.floor(b.getNorth() / CELL); gy++)
+          for (const i of grid.get(gx + "," + gy) || []) {
+            if (seen.has(i)) continue; seen.add(i);
+            const r = D.lines[i];
+            if (r[6].some(([x, y]) => b.contains([y, x]))) items.push({ t: "line", i, name: r[4] || `${r[0]} kV 線`, w: r[0] * 1e4 + r[3] });
+          }
+    }
+    if (f) items = items.filter((x) => (x.name || "").toLowerCase().includes(f));
+    items.sort((a, b) => b.w - a.w);
+    $("list-count").textContent = `表示範囲に ${fmt(items.length)} 件` + (items.length > LIST_MAX ? `（大きい順に ${LIST_MAX} 件）` : "");
+    const top = items.slice(0, LIST_MAX);
+    $("list")._items = top;
+    $("list").innerHTML = top.map(itemHtml).join("");
+  }
+  for (const b of document.querySelectorAll("#listpanel .tabs button")) b.addEventListener("click", () => {
+    listTab = b.dataset.t;
+    for (const o of document.querySelectorAll("#listpanel .tabs button")) o.setAttribute("aria-selected", String(o === b));
+    refreshList();
+  });
+  $("list-filter").addEventListener("input", () => { clearTimeout(qTimer); qTimer = setTimeout(refreshList, 160); });
+
+  // ── map controls: basemap popover and the list toggle (top right) ─────────
+  const BaseCtl = L.Control.extend({ options: { position: "topright" }, onAdd() {
+    const d = L.DomUtil.create("div", "basectl");
+    d.innerHTML = '<button type="button" class="mapbtn" id="base-btn" aria-expanded="false" aria-controls="sec-base">背景 ▾</button>';
+    const body = $("sec-base"); body.classList.add("pop-body"); body.hidden = true; d.appendChild(body);
+    d.querySelector("#base-btn").addEventListener("click", () => {
+      body.hidden = !body.hidden; d.querySelector("#base-btn").setAttribute("aria-expanded", String(!body.hidden));
+    });
+    L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d);
+    return d;
+  } });
+  new BaseCtl().addTo(map);
+  if (MODE === "live") {
+    const ListCtl = L.Control.extend({ options: { position: "topright" }, onAdd() {
+      const d = L.DomUtil.create("div");
+      d.innerHTML = '<button type="button" class="mapbtn" id="list-btn" aria-expanded="false" aria-controls="listpanel">一覧</button>';
+      d.firstChild.addEventListener("click", () => toggleList());
+      L.DomEvent.disableClickPropagation(d);
+      return d;
+    } });
+    new ListCtl().addTo(map);
+  }
+  function toggleList(show) {
+    const p = $("listpanel"), on = show ?? p.hidden;
+    p.hidden = !on; $("list-btn").setAttribute("aria-expanded", String(on));
+    if (on) refreshList();
+  }
+  $("list-close").addEventListener("click", () => toggleList(false));
+  L.DomEvent.disableClickPropagation($("listpanel")); L.DomEvent.disableScrollPropagation($("listpanel"));
+
+  $("kv-chips").innerHTML = [765, 500, 345, 230, 161, 138, 115, 69, 0].map((k) =>
+    `<span class="chip"><span class="dot" style="background:${KV_COL[k]}"></span>${k ? k : "不明"}</span>`).join("");
+  $("fuel-chips").innerHTML = Object.entries(FUEL).map(([k, [ja, c]]) =>
+    `<button type="button" class="chip" data-f="${k}" aria-pressed="true" title="${ja}の表示を切り替え"><span class="dot" style="background:${c}"></span>${ja}</button>`).join("");
+  $("fuel-chips").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-f]"); if (!b) return;
+    const on = b.getAttribute("aria-pressed") !== "true";
+    b.setAttribute("aria-pressed", String(on));
+    on ? fuelOn.add(b.dataset.f) : fuelOn.delete(b.dataset.f);
+    drawPlants();
+  });
+  $("ly-subs").addEventListener("change", drawSubs);
+  $("ly-plants").addEventListener("change", drawPlants);
+  async function loadDB() {
+    if (MODE !== "live") {
+      for (const id of ["row-subs", "row-plants", "kv-chips", "fuel-chips"]) $(id).hidden = true;
+      $("db-note").textContent = "変電所・発電所はライブ版だけで表示します。";
+      return;
+    }
+    $("db-note").textContent = "変電所・発電所を読み込んでいます…";
+    try {
+      const [s, p] = await Promise.all(["subs.json", "plants.json"].map((f) => fetch(f).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.json(); })));
+      DBX.subs = { rows: s.rows, idx: cellIndex(s.rows) };
+      DBX.plants = { rows: p.rows, idx: cellIndex(p.rows) };
+      $("n-subs").textContent = fmt(s.rows.length); $("n-plants").textContent = fmt(p.rows.length);
+      $("db-note").textContent = `変電所 ${fmt(s.rows.length)}・発電所 ${fmt(p.rows.length)}・送電線 ${fmt(D.lines.length)} 本から探せます。` +
+        "拡大するほど小さな設備まで表示します（変電所はズーム 11、発電所は 10 から全件）。";
+      drawPoints(); refreshList();
+      if ($("q").value.trim().length >= 2) runSearch();
+    } catch (err) { console.warn(err); $("db-note").textContent = "変電所・発電所のデータを読み込めませんでした。"; }
+  }
+  map.on("moveend", () => { drawPoints(); refreshList(); });
 
   // ── controls ─────────────────────────────────────────────────────────
-  for (const ic of ["eastern", "western", "ercot", "none"]) $(`ly-${ic}`).addEventListener("change", syncLines);
-  if (HAS_FLOW) {
-    $("sec-color").hidden = false;
-    const MODES = [["ic", "連系ごと"], ["flow", "DC 潮流"]];
+  for (const ic of ["eastern", "western", "ercot", "none"]) $(`ly-${ic}`).addEventListener("change", () => { syncLines(); drawPoints(); });
+  $("sec-color").hidden = false;
+  {
+    const MODES = [["ic", "連系ごと"], ["kv", "電圧"], ...(HAS_FLOW ? [["flow", "DC 潮流"]] : [])];
     $("colorsel").innerHTML = MODES.map(([v, label], i) =>
       `<label><input type="radio" name="col" value="${v}" ${i === 0 ? "checked" : ""}>${label}</label>`).join("");
+    $("colorsel").addEventListener("change", (e) => {
+      colorMode = e.target.value;
+      $("flow-legend").hidden = colorMode !== "flow";
+      styleAll();
+    });
+    $("flow-legend").hidden = true;
+  }
+  if (HAS_FLOW) {
     $("flow-legend").innerHTML = FBANDS.map(([, label], i) =>
       `<label class="row"><span style="width:16px"></span><span class="sw thick" style="background:var(--f${i})"></span><span>${label}</span><span class="n">${fmt(fCounts[i])}</span></label>`).join("")
       + (nNoFlow ? `<label class="row"><span style="width:16px"></span><span class="sw thick" style="background:var(--ic-none)"></span><span>潮流を持たない枝（母線として統合 #9d・境界の切断・孤立）</span><span class="n">${fmt(nNoFlow)}</span></label>` : "");
@@ -503,12 +847,6 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
     $("flow-note").innerHTML = "全米ピーク時刻（" + esc((cs.ercot || cs.western || cs.eastern || {}).hour || "") + " UTC）の DC 潮流です。"
       + "容量は電圧階級ごとの既定値（介入 #9）で、個別の線の値として引用できません。<br>AC 潮流: "
       + ["ercot", "western", "eastern"].filter((k) => cs[k]).map((k) => `${IC_JA[k]} = ${st[cs[k].ac] || "—"}`).join(" / ");
-    $("colorsel").addEventListener("change", (e) => {
-      colorMode = e.target.value;
-      $("flow-legend").hidden = colorMode !== "flow";
-      styleAll();
-    });
-    $("flow-legend").hidden = true;
   }
   const OTHER = { "ly-cuts": cutLayer, "ly-ties": tieLayer, "ly-outline": outlineLayer,
                   "ly-border": borderLayer, "ly-weak": weakLayer };
@@ -539,6 +877,7 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
   syncLines();
   loadDetail();
   setBase(BASES[0][0]);
+  loadDB();
 })();
 </script>
 
