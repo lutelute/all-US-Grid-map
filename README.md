@@ -9,7 +9,8 @@ Interactive maps of the US transmission grid built automatically from OpenStreet
   AC power flow on 2026-07-22 18:00 CDT (EIA-930 demand 91,075 MW)
 
 Basemaps (USGS imagery + labels, USGS NAIP imagery, USGS topographic, OpenStreetMap) load
-live, so the imagery stays sharp down to substation yards.
+live. From zoom 14 the imagery comes from the USGS NAIP Plus image service (USDA NAIP 0.6 m,
+USGS high-resolution orthoimagery 0.3 m in cities), sharp enough for substation equipment.
 
 ## Disclaimer / 免責事項
 

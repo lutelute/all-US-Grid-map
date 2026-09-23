@@ -226,7 +226,7 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
     `線の色は所属する連系、太さは電圧です。<b>電気定数や潮流は含みません</b>。介入の一覧はリポジトリの <code>docs/MODEL_INTERVENTIONS.md</code>。`;
 
   // ── map ───────────────────────────────────────────────────────────────
-  const map = L.map("map", { zoomSnap: 0.5, minZoom: 3, maxZoom: MODE === "live" ? 18 : 11, preferCanvas: true });
+  const map = L.map("map", { zoomSnap: 0.5, minZoom: 3, maxZoom: MODE === "live" ? 19 : 11, preferCanvas: true });
   map.attributionControl.setPrefix(false);
   map.createPane("labels"); map.getPane("labels").style.zIndex = 240; map.getPane("labels").style.pointerEvents = "none";
   map.attributionControl.addAttribution('送電線・変電所 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>) ・ EIA-860M / EIA-930 ・ US Census 2020 ・ BA ポリゴン <a href="https://github.com/PyPSA/pypsa-usa" target="_blank" rel="noopener">PyPSA-USA</a> (MIT) / Breakthrough Energy PreREISE');
@@ -415,8 +415,22 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
     // required) and CARTO (own API key required since 2026-08) are not offered.
     const usgs = (svc, attr) => L.tileLayer(`https://basemap.nationalmap.gov/arcgis/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,
       { maxZoom: 19, maxNativeZoom: 16, attribution: `${attr}（<a href="https://www.usgs.gov/faqs/what-are-terms-uselicensing-map-services-and-data-national-map" target="_blank" rel="noopener">USGS</a>）` });
-    BASES.push(["usgs-labels", "衛星＋地名（USGS）", usgs("USGSImageryTopo", "航空写真・地名 USGS The National Map: Orthoimagery and US Topo"), true]);
-    BASES.push(["usgs", "衛星（USGS NAIP）", usgs("USGSImageryOnly", "航空写真 USDA, USGS The National Map: Orthoimagery"), true]);
+    // The cached USGS tiles stop at zoom 16 (1:9,028), too coarse for a substation yard.
+    // From zoom 14 the NAIP Plus image service takes over: USDA NAIP (0.6 m) and USGS
+    // high-resolution orthoimagery (0.3 m in cities), public domain like the rest of
+    // The National Map. It is an image service, so every tile is an exportImage call.
+    const NaipTiles = L.TileLayer.extend({
+      getTileUrl(c) {
+        const R = 20037508.342789244, s = 2 * R / Math.pow(2, c.z), px = L.Browser.retina ? 512 : 256;
+        const b = [-R + c.x * s, R - (c.y + 1) * s, -R + (c.x + 1) * s, R - c.y * s].map((v) => v.toFixed(2)).join(",");
+        return "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage"
+          + `?bbox=${b}&bboxSR=3857&imageSR=3857&size=${px},${px}&format=jpg&f=image`;
+      },
+    });
+    const naip = () => new NaipTiles("", { minZoom: 14, maxZoom: 19, attribution:
+      "航空写真 USDA NAIP・USGS HRO（The National Map）" });
+    BASES.push(["usgs-labels", "衛星＋地名（USGS）", L.layerGroup([usgs("USGSImageryTopo", "航空写真・地名 USGS The National Map: Orthoimagery and US Topo"), naip()]), true]);
+    BASES.push(["usgs", "衛星（USGS NAIP）", L.layerGroup([usgs("USGSImageryOnly", "航空写真 USDA, USGS The National Map: Orthoimagery"), naip()]), true]);
     BASES.push(["topo", "地形（USGS）", usgs("USGSTopo", "地形図 USGS The National Map"), false]);
     BASES.push(["osm", "OpenStreetMap", L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       { maxZoom: 19, attribution: '地図 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>' }), false]);
@@ -425,7 +439,7 @@ table.ics td:first-child { font-family: var(--sans); font-weight: 700; }
   }
   BASES.push(["none", "背景なし", null, false]);
   $("base-note").textContent = MODE === "live"
-    ? "背景タイルをその場で読み込みます。衛星なら拡大すると鉄塔や変電所の敷地まで見えます。"
+    ? "背景タイルをその場で読み込みます。衛星はズーム 14 から NAIP（0.3〜0.6 m）に切り替わり、変電所の機器や鉄塔まで見えます（地名はズーム 13 まで）。"
     : `公開ページは外部のタイルを読めないため、USGS の衛星画像をズーム ${SAT ? SAT.maxz : "—"} まで埋め込んでいます。拡大して確かめるにはライブ版を使います。`;
   $("bases").innerHTML = BASES.map(([k, label], i) => `<label><input type="radio" name="base" id="base-${k}" value="${k}" ${i === 0 ? "checked" : ""}>${label}</label>`).join("");
   let base = null;
