@@ -638,6 +638,15 @@ button.chip[aria-pressed="false"] { opacity: 0.35; }
       && (rows[i][8] < 0 || icOn(rows[i][8])));
     if (ids.length > MAX_MARKERS) ids = ids.sort((a, b) => rows[b][3] - rows[a][3]).slice(0, MAX_MARKERS);
     ids.sort((a, b) => rows[b][3] - rows[a][3]);            // small plants on top of big ones
+    if (z >= 11 && DBX.subIdx) {                          // where each plant is connected (#6 / #6b)
+      for (const i of ids) {
+        const r = rows[i], k = r[17] ? DBX.subIdx.get(r[17]) : undefined;
+        if (k === undefined) continue;
+        const sr = DBX.subs.rows[k];
+        L.polyline([[r[1], r[0]], [sr[1], sr[0]]], { renderer: rPlants, color: (FUEL[r[2]] || FUEL.unknown)[1],
+          weight: 1.4, opacity: 0.9, dashArray: "4 4", interactive: false }).addTo(plantLayer);
+      }
+    }
     for (const i of ids) {
       const r = rows[i];
       L.circleMarker([r[1], r[0]], { renderer: rPlants, radius: plantRadius(r[3]) * big, color: "#000", weight: z < 7 ? 0.6 : 1,
@@ -667,7 +676,7 @@ button.chip[aria-pressed="false"] { opacity: 0.35; }
       `<dt>事業者</dt><dd>${esc(r[6]) || "—"}</dd>` +
       `<dt>連系</dt><dd>${icName(ICN[r[3]])}${r[9] ? ` ・ ${esc(r[9])}` : ""}</dd>` +
       `<dt>接続する線</dt><dd>${fmt(r[8])} 本${r[11] ? "" : "（本体の網に未接続）"}</dd>` +
-      (r[15] ? `<dt>発電所</dt><dd>${fmt(r[15])} か所・${fmt(r[16])} MW（介入 #6）</dd>` : "") +
+      (r[15] ? `<dt>発電所</dt><dd>${fmt(r[15])} か所・${fmt(r[16])} MW（介入 #6、ズーム 11 以上で破線）</dd>` : "") +
       (r[13] ? `<dt>所在地</dt><dd>${esc(r[14] || "")}${r[14] ? ", " : ""}${esc(r[13])}</dd>` : "") +
       `<dt>OSM</dt><dd>${osmLink(r[5])}</dd></dl>` +
       (MODE === "live" ? `<button type="button" class="linkbtn" data-sld="${i}">単線図を開く</button>` : "") + `</div>`).openOn(map);
@@ -677,6 +686,8 @@ button.chip[aria-pressed="false"] { opacity: 0.35; }
   map.on("popupopen", (e) => {
     const b = e.popup.getElement().querySelector("button[data-sld]");
     if (b) b.addEventListener("click", () => openSLD(Number(b.dataset.sld)));
+    const a = e.popup.getElement().querySelector("a[data-gosub]");
+    if (a) a.addEventListener("click", (ev) => { ev.preventDefault(); goTo({ t: "sub", i: Number(a.dataset.gosub) }); });
   });
   $("sld-close").addEventListener("click", () => { $("sldpanel").hidden = true; });
   L.DomEvent.disableClickPropagation($("sldpanel")); L.DomEvent.disableScrollPropagation($("sldpanel"));
@@ -746,6 +757,7 @@ button.chip[aria-pressed="false"] { opacity: 0.35; }
       `<dt>連系</dt><dd>${icName(ICN[r[8]])}</dd>` +
       (r[14] ? `<dt>連系電圧</dt><dd>${esc(String(r[14]).split(";").join(" / "))} kV（EIA-860）</dd>` : "") +
       (r[15] ? `<dt>送電所有者</dt><dd>${esc(r[15])}</dd>` : "") +
+      (r[17] && DBX.subIdx && DBX.subIdx.has(r[17]) ? `<dt>接続先の変電所</dt><dd><a href="#" data-gosub="${DBX.subIdx.get(r[17])}">${esc(DBX.subs.rows[DBX.subIdx.get(r[17])][4])}</a></dd>` : "") +
       (r[9] ? `<dt>接続先</dt><dd>${fmt(r[9])} kV 母線・${fmt(r[10], r[10] < 1 ? 2 : 1)} km（介入 #6）${
         { match: " ✓ EIA と一致", mismatch: " ⚠ EIA と電圧が違う", distribution: "（EIA では配電連系）" }[r[16]] || ""}</dd>` : "") +
       (r[6] ? `<dt>EIA ID</dt><dd>${esc(r[6])}</dd>` : "") +
@@ -912,6 +924,7 @@ button.chip[aria-pressed="false"] { opacity: 0.35; }
     try {
       const [s, p] = await Promise.all(["subs.json", "plants.json"].map((f) => fetch(f).then((r) => { if (!r.ok) throw new Error(f + " " + r.status); return r.json(); })));
       DBX.subs = { rows: s.rows, idx: cellIndex(s.rows) };
+      DBX.subIdx = new Map(s.rows.map((r, k) => ["S" + r[5], k]));      // sub_id -> row
       DBX.plants = { rows: p.rows, idx: cellIndex(p.rows) };
       $("n-subs").textContent = fmt(s.rows.length); $("n-plants").textContent = fmt(p.rows.length);
       $("db-note").textContent = `変電所 ${fmt(s.rows.length)}・発電所 ${fmt(p.rows.length)}・送電線 ${fmt(D.lines.length)} 本から探せます。` +
